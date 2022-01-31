@@ -84,7 +84,7 @@ end submonoid_class
 
 namespace submonoid
 
-variables [monoid M] (s : submonoid M)
+variables (s : submonoid M)
 
 @[simp, norm_cast, to_additive coe_nsmul] theorem coe_pow (x : s) (n : ℕ) :
   ↑(x ^ n) = (x ^ n : M) :=
