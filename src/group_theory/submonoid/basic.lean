@@ -58,11 +58,37 @@ section non_assoc
 variables [mul_one_class M] {s : set M}
 variables [add_zero_class A] {t : set A}
 
+/-- `one_mem_class S M` says `S` is a type of subsets `s ≤ M`, such that `1 ∈ s` for all `s`. -/
+class one_mem_class (S : Type*) (M : out_param $ Type*) [has_one M] [set_like S M] :=
+(one_mem : ∀ (s : S), (1 : M) ∈ s)
+
+/-- `zero_mem_class S M` says `S` is a type of subsets `s ≤ M`, such that `0 ∈ s` for all `s`. -/
+class zero_mem_class (S : Type*) (M : out_param $ Type*) [has_zero M] [set_like S M] :=
+(zero_mem : ∀ (s : S), (0 : M) ∈ s)
+
+/-- `mul_mem_class S M` says `S` is a type of subsets `s ≤ M` that are closed under `(*)` -/
+class mul_mem_class (S : Type*) (M : out_param $ Type*) [has_mul M] [set_like S M] :=
+(mul_mem : ∀ {s : S} {a b : M}, a ∈ s → b ∈ s → a * b ∈ s)
+
+/-- `add_mem_class S M` says `S` is a type of subsets `s ≤ M` that are closed under `(+)` -/
+class add_mem_class (S : Type*) (M : out_param $ Type*) [has_add M] [set_like S M] :=
+(add_mem : ∀ {s : S} {a b : M}, a ∈ s → b ∈ s → a + b ∈ s)
+
+export add_mem_class (add_mem)
+
+attribute [to_additive] one_mem_class mul_mem_class
+
 /-- A submonoid of a monoid `M` is a subset containing 1 and closed under multiplication. -/
 structure submonoid (M : Type*) [mul_one_class M] :=
 (carrier : set M)
 (one_mem' : (1 : M) ∈ carrier)
 (mul_mem' {a b} : a ∈ carrier → b ∈ carrier → a * b ∈ carrier)
+
+/-- `submonoid_class S M` says `S` is a type of subsets `s ≤ M` that contain `1`
+and are closed under `(*)` -/
+class submonoid_class (S : Type*) (M : out_param $ Type*) [mul_one_class M] [set_like S M]
+  extends mul_mem_class S M :=
+(one_mem : ∀ (s : S), (1 : M) ∈ s)
 
 /-- An additive submonoid of an additive monoid `M` is a subset containing 0 and
   closed under addition. -/
@@ -71,13 +97,30 @@ structure add_submonoid (M : Type*) [add_zero_class M] :=
 (zero_mem' : (0 : M) ∈ carrier)
 (add_mem' {a b} : a ∈ carrier → b ∈ carrier → a + b ∈ carrier)
 
-attribute [to_additive] submonoid
+/-- `add_submonoid_class S M` says `S` is a type of subsets `s ≤ M` that contain `0`
+and are closed under `(+)` -/
+class add_submonoid_class (S : Type*) (M : out_param $ Type*) [add_zero_class M] [set_like S M]
+  extends add_mem_class S M :=
+(zero_mem : ∀ (s : S), (0 : M) ∈ s)
+
+attribute [to_additive] submonoid submonoid_class
+
+@[to_additive, priority 100] -- See note [lower instance priority]
+instance submonoid_class.to_one_mem_class (S : Type*) (M : out_param $ Type*) [mul_one_class M]
+  [set_like S M] [h : submonoid_class S M] : one_mem_class S M :=
+{ ..h }
 
 namespace submonoid
 
 @[to_additive]
 instance : set_like (submonoid M) M :=
-⟨submonoid.carrier, λ p q h, by cases p; cases q; congr'⟩
+{ coe := submonoid.carrier,
+  coe_injective' := λ p q h, by cases p; cases q; congr' }
+
+@[to_additive]
+instance : submonoid_class (submonoid M) M :=
+{ one_mem := submonoid.one_mem',
+  mul_mem := submonoid.mul_mem' }
 
 /-- See Note [custom simps projection] -/
 @[to_additive " See Note [custom simps projection]"]
