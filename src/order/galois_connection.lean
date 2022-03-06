@@ -3,7 +3,7 @@ Copyright (c) 2017 Johannes Hölzl. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Johannes Hölzl
 -/
-import order.complete_lattice
+import order.complete_boolean_algebra
 import order.order_dual
 /-!
 # Galois connections, insertions and coinsertions
@@ -41,10 +41,11 @@ This means the infimum of subgroups will be defined to be the intersection of se
 with a proof that intersection of subgroups is a subgroup, rather than the closure of the
 intersection.
 -/
-open function set
+open function order set
 
 universes u v w x
-variables {α : Type u} {β : Type v} {γ : Type w} {ι : Sort x} {a a₁ a₂ : α} {b b₁ b₂ : β}
+variables {α : Type u} {β : Type v} {γ : Type w} {ι : Sort x} {κ : ι → Sort*} {a a₁ a₂ : α}
+  {b b₁ b₂ : β}
 
 /-- A Galois connection is a pair of functions `l` and `u` satisfying
   `l a ≤ b ↔ a ≤ u b`. They are special cases of adjoint functors in category theory,
@@ -238,16 +239,17 @@ variables [complete_lattice α] [complete_lattice β] {l : α → β} {u : β �
   (gc : galois_connection l u)
 include gc
 
-lemma l_supr {f : ι → α} : l (supr f) = (⨆i, l (f i)) :=
+lemma l_supr {f : ι → α} : l (supr f) = ⨆ i, l (f i) :=
 eq.symm $ is_lub.supr_eq $ show is_lub (range (l ∘ f)) (l (supr f)),
   by rw [range_comp, ← Sup_range]; exact gc.is_lub_l_image (is_lub_Sup _)
 
-lemma u_infi {f : ι → β} : u (infi f) = (⨅i, u (f i)) := gc.dual.l_supr
+lemma l_supr₂ {f : Π i, κ i → α} : l (⨆ i j, f i j) = ⨆ i j, l (f i j) := by simp_rw gc.l_supr
 
-lemma l_Sup {s : set α} : l (Sup s) = (⨆a ∈ s, l a) :=
-by simp only [Sup_eq_supr, gc.l_supr]
+lemma u_infi {f : ι → β} : u (infi f) = ⨅ i, u (f i) := gc.dual.l_supr
+lemma u_infi₂ {f : Π i, κ i → β} : u (⨅ i j, f i j) = ⨅ i j, u (f i j) := gc.dual.l_supr₂
 
-lemma u_Inf {s : set β} : u (Inf s) = (⨅a ∈ s, u a) := gc.dual.l_Sup
+lemma l_Sup {s : set α} : l (Sup s) = ⨆ a ∈ s, l a := by simp only [Sup_eq_supr, gc.l_supr]
+lemma u_Inf {s : set β} : u (Inf s) = ⨅ a ∈ s, u a := gc.dual.l_Sup
 
 end complete_lattice
 
@@ -474,6 +476,7 @@ section lift
 variables [partial_order β]
 
 /-- Lift the suprema along a Galois insertion -/
+@[reducible] -- See note [reducible non instances]
 def lift_semilattice_sup [semilattice_sup α] (gi : galois_insertion l u) : semilattice_sup β :=
 { sup := λ a b, l (u a ⊔ u b),
   le_sup_left  := λ a b, (gi.le_l_u a).trans $ gi.gc.monotone_l $ le_sup_left,
@@ -483,6 +486,7 @@ def lift_semilattice_sup [semilattice_sup α] (gi : galois_insertion l u) : semi
   .. ‹partial_order β› }
 
 /-- Lift the infima along a Galois insertion -/
+@[reducible] -- See note [reducible non instances]
 def lift_semilattice_inf [semilattice_inf α] (gi : galois_insertion l u) : semilattice_inf β :=
 { inf := λ a b, gi.choice (u a ⊓ u b) $
     (le_inf (gi.gc.monotone_u $ gi.gc.l_le $ inf_le_left)
@@ -494,20 +498,24 @@ def lift_semilattice_inf [semilattice_inf α] (gi : galois_insertion l u) : semi
   .. ‹partial_order β› }
 
 /-- Lift the suprema and infima along a Galois insertion -/
+@[reducible] -- See note [reducible non instances]
 def lift_lattice [lattice α] (gi : galois_insertion l u) : lattice β :=
 { .. gi.lift_semilattice_sup, .. gi.lift_semilattice_inf }
 
 /-- Lift the top along a Galois insertion -/
+@[reducible] -- See note [reducible non instances]
 def lift_order_top [preorder α] [order_top α] (gi : galois_insertion l u) : order_top β :=
 { top    := gi.choice ⊤ $ le_top,
   le_top := by simp only [gi.choice_eq]; exact λ b, (gi.le_l_u b).trans (gi.gc.monotone_l le_top) }
 
 /-- Lift the top, bottom, suprema, and infima along a Galois insertion -/
+@[reducible] -- See note [reducible non instances]
 def lift_bounded_order [preorder α] [bounded_order α]
   (gi : galois_insertion l u) : bounded_order β :=
 { .. gi.lift_order_top, .. gi.gc.lift_order_bot }
 
 /-- Lift all suprema and infima along a Galois insertion -/
+@[reducible] -- See note [reducible non instances]
 def lift_complete_lattice [complete_lattice α] (gi : galois_insertion l u) : complete_lattice β :=
 { Sup := λ s, l (Sup (u '' s)),
   Sup_le := λ s, (gi.is_lub_of_u_image (is_lub_Sup _)).2,
@@ -518,6 +526,28 @@ def lift_complete_lattice [complete_lattice α] (gi : galois_insertion l u) : co
   le_Inf := λ s, by { rw gi.choice_eq, exact (gi.is_glb_of_u_image (is_glb_Inf _)).2 },
   .. gi.lift_bounded_order,
   .. gi.lift_lattice }
+
+/-- Lift all suprema and infima along a Galois insertion. -/
+@[reducible] -- See note [reducible non instances]
+def lift_coframe [coframe α] (gi : galois_insertion l u) : coframe β :=
+{ infi_sup_le_sup_Inf := λ a s, begin
+  letI := gi.lift_complete_lattice,
+  refine gi.u_le_u_iff.1 (gi.gc.u_infi₂.trans _).le,
+  simp_rw [gi.choice_eq, gi.l_Inf_u_image],
+
+  -- change gi.choice _ _ ≤ l (_ ⊔ u (gi.choice _ _)),
+  -- simp_rw gi.choice_eq,
+  -- refine le_of_eq _,
+
+  -- rw gi.l_Inf_u_image,
+  -- rw gi.gc.u_infi,
+  --   refine gi.l_le_l_iff.1 (gi.gc.u_inf.trans_le
+  --   _),
+  --   rw gi.gc.u_inf,
+  --   refine (gi.choice_eq _ _).trans_le (gi.gc.monotone_l _),
+  --   refine inf_Sup_eq.le.trans _,
+  end,
+  .. gi.lift_complete_lattice }
 
 end lift
 
@@ -666,11 +696,13 @@ section lift
 variables [partial_order α]
 
 /-- Lift the infima along a Galois coinsertion -/
+@[reducible] -- See note [reducible non instances]
 def lift_semilattice_inf [semilattice_inf β] (gi : galois_coinsertion l u) : semilattice_inf α :=
 { inf := λ a b, u (l a ⊓ l b),
   .. ‹partial_order α›, .. @order_dual.semilattice_inf _ gi.dual.lift_semilattice_sup }
 
 /-- Lift the suprema along a Galois coinsertion -/
+@[reducible] -- See note [reducible non instances]
 def lift_semilattice_sup [semilattice_sup β] (gi : galois_coinsertion l u) : semilattice_sup α :=
 { sup := λ a b, gi.choice (l a ⊔ l b) $
     (sup_le (gi.gc.monotone_l $ gi.gc.le_u $ le_sup_left)
@@ -678,24 +710,58 @@ def lift_semilattice_sup [semilattice_sup β] (gi : galois_coinsertion l u) : se
   .. ‹partial_order α›, .. @order_dual.semilattice_sup _ gi.dual.lift_semilattice_inf }
 
 /-- Lift the suprema and infima along a Galois coinsertion -/
+@[reducible] -- See note [reducible non instances]
 def lift_lattice [lattice β] (gi : galois_coinsertion l u) : lattice α :=
 { .. gi.lift_semilattice_sup, .. gi.lift_semilattice_inf }
 
 /-- Lift the bot along a Galois coinsertion -/
+@[reducible] -- See note [reducible non instances]
 def lift_order_bot [preorder β] [order_bot β] (gi : galois_coinsertion l u) : order_bot α :=
 { bot    := gi.choice ⊥ $ bot_le,
   .. @order_dual.order_bot _ _ gi.dual.lift_order_top }
 
 /-- Lift the top, bottom, suprema, and infima along a Galois coinsertion -/
+@[reducible] -- See note [reducible non instances]
 def lift_bounded_order [preorder β] [bounded_order β]
   (gi : galois_coinsertion l u) : bounded_order α :=
 { .. gi.lift_order_bot, .. gi.gc.lift_order_top }
 
 /-- Lift all suprema and infima along a Galois coinsertion -/
+@[reducible] -- See note [reducible non instances]
 def lift_complete_lattice [complete_lattice β] (gi : galois_coinsertion l u) : complete_lattice α :=
 { Inf := λ s, u (Inf (l '' s)),
   Sup := λ s, gi.choice (Sup (l '' s)) _,
   .. @order_dual.complete_lattice _ gi.dual.lift_complete_lattice }
+
+/-- Lift all suprema and infima along a Galois coinsertion. -/
+@[reducible] -- See note [reducible non instances]
+def lift_frame [frame β] [partial_order α] (gi : galois_coinsertion l u) : frame α :=
+{ inf_Sup_le_supr_inf := λ a s, begin
+  letI := gi.lift_complete_lattice,
+  refine gi.l_le_l_iff.1 (le_of_eq _),
+  simp_rw [gi.gc.l_supr₂, gi.choice_eq],
+  rw [←gi.u_l_eq a, gi.l_inf_u],
+  simp_rw [gi.choice_eq, gi.l_Inf_u_image],
+  haveI := gi.lift_complete_lattice,
+  haveI hα : semilattice_inf α := by apply_instance,
+  change u (_ ⊓ l (gi.choice _ _)) ≤ gi.choice _ _,
+  refine gi.l_le_l_iff.1 _,
+  simp_rw gi.choice_eq,
+  refine le_of_eq _,
+  have := @galois_coinsertion.u_inf_l α β l u hα _ _ a (u $ Sup (l '' s)),
+  refine (congr_arg l this).trans _,
+  sorry,
+  convert gi,
+  ext,
+  refl,
+  rw inf_Sup_eq,
+    refine gi.l_le_l_iff.1 (gi.gc.u_inf.trans_le
+    _),
+    rw gi.gc.u_inf,
+    refine (gi.choice_eq _ _).trans_le (gi.gc.monotone_l _),
+    refine inf_Sup_eq.le.trans _,
+  end,
+  .. gi.lift_complete_lattice }
 
 end lift
 

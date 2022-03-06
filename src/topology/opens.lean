@@ -97,6 +97,7 @@ by refl
   ((U ⊓ V : opens α) : set α) = (U : set α) ⊓ (V : set α) := rfl
 @[simp] lemma coe_bot : ((⊥ : opens α) : set α) = ∅ := rfl
 @[simp] lemma coe_top : ((⊤ : opens α) : set α) = set.univ := rfl
+@[simp] lemma coe_Sup {S : set (opens α)} : (↑(Sup S) : set α) = ⋃ i ∈ S, ↑i := (@gc α _).l_Sup
 
 instance : has_inter (opens α) := ⟨λ U V, U ⊓ V⟩
 instance : has_union (opens α) := ⟨λ U V, U ⊔ V⟩
