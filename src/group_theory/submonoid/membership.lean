@@ -39,10 +39,6 @@ variables [monoid M] [set_like B M] [submonoid_class B M] {S : B}
 
 namespace submonoid_class
 
-@[simp, norm_cast, to_additive coe_nsmul] theorem coe_pow (x : S) (n : ℕ) :
-  ↑(x ^ n) = (x ^ n : M) :=
-(submonoid_class.subtype S : _ →* M).map_pow x n
-
 @[simp, norm_cast, to_additive] theorem coe_list_prod (l : list S) :
   (l.prod : M) = (l.map coe).prod :=
 (submonoid_class.subtype S : _ →* M).map_list_prod l
@@ -77,18 +73,11 @@ lemma prod_mem {M : Type*} [comm_monoid M] [set_like B M] [submonoid_class B M]
   ∏ c in t, f c ∈ S :=
 multiset_prod_mem (t.1.map f) $ λ x hx, let ⟨i, hi, hix⟩ := multiset.mem_map.1 hx in hix ▸ h i hi
 
-@[to_additive nsmul_mem] lemma pow_mem {x : M} (hx : x ∈ S) (n : ℕ) : x ^ n ∈ S :=
-by simpa only [coe_pow] using ((⟨x, hx⟩ : S) ^ n).coe_prop
-
 end submonoid_class
 
 namespace submonoid
 
 variables (s : submonoid M)
-
-@[simp, norm_cast, to_additive coe_nsmul] theorem coe_pow (x : s) (n : ℕ) :
-  ↑(x ^ n) = (x ^ n : M) :=
-s.subtype.map_pow x n
 
 @[simp, norm_cast, to_additive] theorem coe_list_prod (l : list s) :
   (l.prod : M) = (l.map coe).prod :=
@@ -123,9 +112,6 @@ lemma prod_mem {M : Type*} [comm_monoid M] (S : submonoid M)
   {ι : Type*} {t : finset ι} {f : ι → M} (h : ∀c ∈ t, f c ∈ S) :
   ∏ c in t, f c ∈ S :=
 S.multiset_prod_mem (t.1.map f) $ λ x hx, let ⟨i, hi, hix⟩ := multiset.mem_map.1 hx in hix ▸ h i hi
-
-@[to_additive nsmul_mem] lemma pow_mem {x : M} (hx : x ∈ s) (n : ℕ) : x ^ n ∈ s :=
-by simpa only [coe_pow] using ((⟨x, hx⟩ : s) ^ n).coe_prop
 
 end submonoid
 
@@ -346,6 +332,23 @@ theorem log_pow_int_eq_self {x : ℤ} (h : 1 < x.nat_abs) (m : ℕ) : log (pow x
 @[simp] lemma map_powers {N : Type*} [monoid N] (f : M →* N) (m : M) :
   (powers m).map f = powers (f m) :=
 by simp only [powers_eq_closure, f.map_mclosure, set.image_singleton]
+
+/-- If all the elements of a set `s` commute, then `closure s` is a commutative monoid. -/
+@[to_additive "If all the elements of a set `s` commute, then `closure s` forms an additive
+commutative monoid."]
+def closure_comm_monoid_of_comm {s : set M} (hcomm : ∀ (a ∈ s) (b ∈ s), a * b = b * a) :
+  comm_monoid (closure s) :=
+{ mul_comm := λ x y,
+  begin
+    ext,
+    simp only [submonoid.coe_mul],
+    exact closure_induction₂ x.prop y.prop hcomm
+      (λ x, by simp only [mul_one, one_mul])
+      (λ x, by simp only [mul_one, one_mul])
+      (λ x y z h₁ h₂, by rw [mul_assoc, h₂, ←mul_assoc, h₁, mul_assoc])
+      (λ x y z h₁ h₂, by rw [←mul_assoc, h₁, mul_assoc, h₂, ←mul_assoc]),
+  end,
+  ..(closure s).to_monoid }
 
 end submonoid
 
