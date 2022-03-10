@@ -375,7 +375,61 @@ protected lemma add_comm (P Q : E⟮K⟯) : P + Q = Q + P :=
 begin
   rcases ⟨P, Q⟩ with ⟨_ | _, _ | _⟩,
   any_goals { refl },
-  sorry
+  
+  by_cases P_x_ne_Q_x: P_x ≠ Q_x,
+
+  have h0: (P_y - Q_y) * (P_x - Q_x)⁻¹ = (Q_y - P_y) * (Q_x - P_x)⁻¹,
+
+  {calc (P_y - Q_y) * (P_x - Q_x)⁻¹ = -(-(P_y - Q_y)) * (-(-(P_x - Q_x)⁻¹)) : by {ring,}
+    ...                             = -(-(P_y - Q_y)) * -(-(P_x - Q_x))⁻¹ : by {rw inv_neg,}
+    ...                             = -(Q_y - P_y) * (-(Q_x - P_x)⁻¹) : by {rw [neg_sub, neg_sub P_x Q_x],}
+    ...                             = (Q_y - P_y) * (Q_x - P_x)⁻¹: by {ring,}
+  },
+
+  have h1 : (2 * P_x + Q_x) * (Q_x - P_x)⁻¹ = (P_x + 2 * Q_x) * (Q_x - P_x)⁻¹ - 1,
+
+  {calc   (2 * P_x + Q_x) * (Q_x - P_x)⁻¹ = (2 * P_x + Q_x) * (Q_x - P_x)⁻¹ + 1 - 1 : by {ring,}
+          ...                             = (2 * P_x + Q_x) * (Q_x - P_x)⁻¹ + (Q_x - P_x)*(Q_x - P_x)⁻¹ - 1 : by {congr' 2, field_simp, rw div_self, intro h, rw sub_eq_zero at h,exact P_x_ne_Q_x h.symm,}
+          ...                             = (P_x + 2 * Q_x) * (Q_x - P_x)⁻¹ - 1: by {field_simp,ring,}
+  },
+
+  have h2 : (-(2 * P_x) - Q_x) * (Q_x - P_x)⁻¹ - 1  = (-P_x - 2 * Q_x) * (Q_x - P_x)⁻¹,
+  {calc   (-(2 * P_x) - Q_x) * (Q_x - P_x)⁻¹ - 1 = (-(2 * P_x) - Q_x) * (Q_x - P_x)⁻¹ - (Q_x - P_x)*(Q_x - P_x)⁻¹: by {field_simp, rw div_self,intro h, rw sub_eq_zero at h,exact P_x_ne_Q_x h.symm,}
+    ...                                          = (-P_x - 2 * Q_x) * (Q_x - P_x)⁻¹ : by {field_simp,ring,}
+  },
+
+    { simp [P_x_ne_Q_x, P_x_ne_Q_x.symm],
+      split,
+      any_goals{rw h0, ring},
+      congr' 4,
+      any_goals{rw [right_distrib, right_distrib, h1], ring},
+      any_goals{rw [right_distrib, right_distrib, <- add_assoc,<- add_sub, h2], ring},  
+    },
+    { rw not_not at P_x_ne_Q_x,
+     have y_eq_comm :  Q_y + P_y + (F↑K)E.a₁ * Q_x + (F↑K)E.a₃ = P_y + Q_y + (F↑K)E.a₁ * Q_x + (F↑K)E.a₃,
+      {by ring},
+      by_cases y_eq : P_y + Q_y + (F↑K)E.a₁ * Q_x + (F↑K)E.a₃ = 0,
+      {
+        have y_eq': Q_y + P_y + (F↑K)E.a₁ * Q_x + (F↑K)E.a₃ = 0, {begin rw y_eq_comm, exact y_eq end},
+        simp [y_eq, P_x_ne_Q_x, y_eq'],
+      },
+      { have y_eq' : Q_y + P_y + (F↑K)E.a₁ * P_x + (F↑K)E.a₃ ≠ 0, {begin rw [P_x_ne_Q_x, y_eq_comm], exact y_eq end},
+        unfold has_add.add,
+        rw [EllipticCurve.add, dif_neg $ not_not.mpr P_x_ne_Q_x, if_pos y_eq], rw [EllipticCurve.add, dif_neg $ not_not.mpr P_x_ne_Q_x.symm, if_pos y_eq'],
+        congr' 2,
+        rw P_x_ne_Q_x at P_w,
+        rw <- P_w at Q_w,
+        have : (P_y - Q_y)*(P_y + Q_y + (F↑K) E.a₁ * Q_x + (F↑K) E.a₃)  = 0,
+        { calc   (P_y - Q_y)*(P_y + Q_y + (F↑K) E.a₁ * Q_x + (F↑K) E.a₃) = (P_y ^ 2 + (F↑K) E.a₁ * Q_x * P_y + (F↑K) E.a₃ * P_y) - (Q_y ^ 2 + (F↑K) E.a₁ * Q_x * Q_y + (F↑K) E.a₃ * Q_y) : by {ring,}
+          ...   = 0 : by {rw Q_w,ring}},
+        cases mul_eq_zero.mp this,
+        rw <- sub_eq_zero,
+        exact h,
+        exfalso,
+        exact y_eq h,
+      }
+    },
+    
 end
 
 protected lemma add_assoc (P Q R : E⟮K⟯) : (P + Q) + R = P + (Q + R) :=
